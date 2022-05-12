@@ -1,44 +1,119 @@
-# Recogonize Flowers with TensorFLow Lite Model Maker and Android Studio ML Model Binding
+# 实验3 基于TensorFlow Lite实现的Andriod花卉识别应用
 
-This folder contains the code for the TensorFlow Lite codelab:
+## 1. 下载原始代码
 
-* [Recognize Flowers with TensorFlow on Android (Beta)](https://goo.gle/3dbCSbt)
+访问https://github.com/hoitab/TFLClassify.git
 
-## Introduction
+下载代码
 
-This beta codelab introduces the latest tooling using TensorFlow Lite Model Maker and Android Studio 4.1 Beta 1 or above. In addition, it will require access to a physical Android device to test. If you prefer to use the stable version of this codelab, follow this codelab instead.
-
-In these codelabs, you will learn:
-
-*   How to train your own custom image classifier using [TensorFlow Lite Model Maker](https://www.tensorflow.org/lite/tutorials/model_maker_image_classification).
-*   How to use Android Studio to import the TensorFlow Lite model to integrate the custom model in an Android app using CameraX.
-*   How to use GPU on your phone to accelerate your model.
+![](https://github.com/ddandll/xmsj3/blob/main/%E5%AE%9E%E9%AA%8C3/1.png?raw=true)
 
 
-## Pre-requisites
 
-[Android Studio 4.1 Beta 1 or above](http://developers.android.com/studio/preview)
+## 2. 运行初始化代码
 
-## Getting Started
+​	a. 选择TFLClassify/build.gradle生成整个项目。
 
-Visit the Google codelabs site to follow along the guided steps.
+​	b. 修改build.gradle(Module: TFL_Classify.start)中代码为：
 
-## Support
+```
+compileSdkVersion 30
 
-- Stack Overflow: https://stackoverflow.com/questions/tagged/tensorflow-lite+android-studio
+    defaultConfig {
+        applicationId "org.tensorflow.lite.examples.classification"
+        minSdkVersion 21
+        //noinspection OldTargetApi
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
 
-## License
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+```
 
- Copyright (C) 2020 The Android Open Source Project
- 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+​	（将29改为30）
 
-http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+​	c. rebuild,现在虚拟机上运行
+
+
+
+​	效果：
+
+![](https://github.com/ddandll/xmsj3/blob/main/%E5%AE%9E%E9%AA%8C3/2.png?raw=true)
+
+## 3. 向应用中添加TensorFlow Lite
+
+​	a. 选择start模块
+
+​	b. 右键“start”模块，或者选择File，然后New>Other>TensorFlow Lite Model
+
+​	c. 选择finish模块中ml文件下的FlowerModel.tflite。
+
+![](https://github.com/ddandll/xmsj3/blob/main/%E5%AE%9E%E9%AA%8C3/3.png?raw=true)
+
+## 4. 添加代码，更改识别出的类型
+
+​	src/main/java/org/tensorflow/lite/examples/classification/MainActivity.kt
+
+更改后的代码：
+
+```
+ private class ImageAnalyzer(ctx: Context, private val listener: RecognitionListener) :
+        ImageAnalysis.Analyzer {
+
+        // TODO 1: Add class variable TensorFlow Lite Model
+        // Initializing the flowerModel by lazy so that it runs in the same thread when the process
+        // method is called.
+        private val flowerModel = FlowerModel.newInstance(ctx)
+
+        // TODO 6. Optional GPU acceleration
+
+
+        override fun analyze(imageProxy: ImageProxy) {
+
+            val items = mutableListOf<Recognition>()
+
+            // TODO 2: Convert Image to Bitmap then to TensorImage
+            val tfImage = TensorImage.fromBitmap(toBitmap(imageProxy))
+
+            // TODO 3: Process the image using the trained model, sort and pick out the top results
+            val outputs = flowerModel.process(tfImage)
+                .probabilityAsCategoryList.apply {
+                    sortByDescending { it.score } // Sort with highest confidence first
+                }.take(MAX_RESULT_DISPLAY) // take the top results
+
+            // TODO 4: Converting the top probability items into a list of recognitions
+            for (output in outputs) {
+                items.add(Recognition(output.label, output.score))
+            }
+
+            // START - Placeholder code at the start of the codelab. Comment this block of code out.
+//            for (i in 0 until MAX_RESULT_DISPLAY){
+//                items.add(Recognition("Fake label $i", Random.nextFloat()))
+//            }
+//            for (i in 0..MAX_RESULT_DISPLAY-1){
+//                items.add(Recognition("Fake label $i", Random.nextFloat()))
+//            }
+
+            // END - Placeholder code at the start of the codelab. Comment this block of code out.
+
+            // Return the result
+            listener(items.toList())
+
+            // Close the image,this tells CameraX to feed the next image to the analyzer
+            imageProxy.close()
+        }
+```
+
+
+
+重新运行，效果：
+
+![](https://github.com/ddandll/xmsj3/blob/main/%E5%AE%9E%E9%AA%8C3/4.png?raw=true)
+
+
+
+## 5. 在手机上效果
+
+![](https://github.com/ddandll/xmsj3/blob/main/%E5%AE%9E%E9%AA%8C3/5.jpg?raw=true)
+
